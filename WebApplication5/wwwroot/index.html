@@ -1,0 +1,698 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>Чат</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f4f0;
+            --white: #ffffff;
+            --border: #d0cdc7;
+            --text: #1a1a1a;
+            --muted: #888;
+            --own-bg: #1a1a1a;
+            --own-text: #f5f4f0;
+            --pm-bg: #2a4a7f;
+            --pm-text: #e8f0ff;
+            --pm-other-bg: #e8f0ff;
+            --pm-other-text: #1a2a4a;
+            --font: 'IBM Plex Mono', monospace;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-screen { width: 320px; display: none; }
+        .auth-screen.active { display: block; }
+
+        .auth-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .auth-title { font-size: 20px; font-weight: 500; margin-bottom: 28px; }
+
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px; }
+        .field input {
+            width: 100%;
+            background: var(--white);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            padding: 10px 12px;
+            outline: none;
+        }
+        .field input:focus { border-color: var(--text); }
+
+        .btn {
+            width: 100%;
+            background: var(--text);
+            color: var(--bg);
+            border: none;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn-secondary {
+            width: 100%;
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            font-family: var(--font);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 10px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+
+        .form-err { font-size: 11px; color: #c00; margin-top: 10px; min-height: 16px; }
+
+        #chatScreen {
+            display: none;
+            width: 100%;
+            max-width: 860px;
+            height: 90vh;
+            max-height: 700px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            flex-direction: row;
+        }
+        #chatScreen.active { display: flex; }
+
+        .sidebar { width: 180px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header {
+            padding: 14px 14px 10px;
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .online-count { background: #2a7; color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 2px; }
+        .user-list { flex: 1; overflow-y: auto; }
+        .user-item {
+            padding: 9px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.1s;
+        }
+        .user-item:hover { background: var(--bg); }
+        .user-item.active-dm { background: var(--bg); font-weight: 500; }
+        .user-item .dot { width: 6px; height: 6px; border-radius: 50%; background: #2a7; flex-shrink: 0; }
+        .user-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .user-item .unread {
+            background: var(--pm-bg);
+            color: var(--pm-text);
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 2px;
+            display: none;
+        }
+        .user-item.public-item { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .user-item.public-item .dot { background: var(--border); }
+
+        .sidebar-footer {
+            border-top: 1px solid var(--border);
+            padding: 10px 14px;
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sidebar-footer:hover { color: #c00; }
+
+        .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .chat-header-left { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+        .chat-header-right { font-size: 11px; color: var(--muted); }
+
+        .dm-badge { display: inline-block; background: var(--pm-bg); color: var(--pm-text); font-size: 10px; padding: 2px 7px; letter-spacing: 0.5px; }
+
+        #chatroom {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 2px;
+        }
+        #chatroom::-webkit-scrollbar { width: 3px; }
+        #chatroom::-webkit-scrollbar-thumb { background: var(--border); }
+
+        .msg { display: flex; flex-direction: column; max-width: 68%; margin-bottom: 6px; }
+        .msg.own { align-self: flex-end; align-items: flex-end; }
+        .msg.other { align-self: flex-start; align-items: flex-start; }
+        .msg-meta { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+        .msg-bubble { padding: 8px 12px; font-size: 13px; line-height: 1.5; word-break: break-word; border: 1px solid var(--border); }
+
+        .msg.own .msg-bubble { background: var(--own-bg); color: var(--own-text); border-color: var(--own-bg); }
+        .msg.other .msg-bubble { background: var(--bg); color: var(--text); }
+        .msg.own.pm .msg-bubble { background: var(--pm-bg); color: var(--pm-text); border-color: var(--pm-bg); }
+        .msg.other.pm .msg-bubble { background: var(--pm-other-bg); color: var(--pm-other-text); border-color: #b8cfff; }
+
+        .sys-msg { text-align: center; font-size: 10px; color: var(--muted); padding: 6px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .chat-input-area { display: flex; border-top: 1px solid var(--border); flex-shrink: 0; position: relative; }
+        .pm-to-badge {
+            position: absolute;
+            top: -26px; left: 0; right: 0;
+            background: var(--pm-other-bg);
+            border-top: 1px solid #b8cfff;
+            font-size: 10px;
+            color: var(--pm-bg);
+            padding: 5px 16px;
+            display: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .pm-to-badge.visible { display: flex; align-items: center; justify-content: space-between; }
+        .pm-cancel { cursor: pointer; font-size: 14px; line-height: 1; }
+
+        #messageInput { flex: 1; background: var(--white); border: none; border-right: 1px solid var(--border); color: var(--text); font-family: var(--font); font-size: 13px; padding: 14px 16px; outline: none; resize: none; }
+        #sendBtn { background: var(--text); color: var(--bg); border: none; font-family: var(--font); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; padding: 0 24px; cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
+        #sendBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+        #sendBtn.pm-mode { background: var(--pm-bg); }
+
+        .status-bar { padding: 5px 20px; font-size: 10px; color: var(--muted); border-top: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+        .status-bar.err { color: #c00; }
+        .status-bar.ok  { color: #2a7; }
+
+        .ctx-menu { position: fixed; background: var(--white); border: 1px solid var(--border); z-index: 1000; display: none; min-width: 130px; }
+        .ctx-menu.open { display: block; }
+        .ctx-item { padding: 9px 14px; font-size: 11px; color: var(--text); cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+        .ctx-item:last-child { border-bottom: none; }
+        .ctx-item.danger { color: #c00; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-8px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        .user-item.new-user { animation: slideIn 0.2s ease; }
+    </style>
+</head>
+<body>
+
+<div class="auth-screen active" id="loginScreen">
+    <div class="auth-label">Общий чат</div>
+    <div class="auth-title">Вход</div>
+    <div class="field">
+        <label>Логин</label>
+        <input id="loginUser" type="text" autocomplete="username" />
+    </div>
+    <div class="field">
+        <label>Пароль</label>
+        <input id="loginPass" type="password" autocomplete="current-password" />
+    </div>
+    <button class="btn" id="loginBtn">Войти</button>
+    <button class="btn-secondary" id="goRegisterBtn">Нет аккаунта — зарегистрироваться</button>
+    <div class="form-err" id="loginErr"></div>
+</div>
+
+<div class="auth-screen" id="registerScreen">
+    <div class="auth-label">Общий чат</div>
+    <div class="auth-title">Регистрация</div>
+    <div class="field">
+        <label>Логин</label>
+        <input id="regUser" type="text" autocomplete="username" />
+    </div>
+    <div class="field">
+        <label>Пароль</label>
+        <input id="regPass" type="password" autocomplete="new-password" />
+    </div>
+    <div class="field">
+        <label>Повторите пароль</label>
+        <input id="regPass2" type="password" autocomplete="new-password" />
+    </div>
+    <button class="btn" id="registerBtn">Зарегистрироваться</button>
+    <button class="btn-secondary" id="goLoginBtn">Уже есть аккаунт — войти</button>
+    <div class="form-err" id="registerErr"></div>
+</div>
+
+<div id="chatScreen">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <span>Онлайн</span>
+            <span class="online-count" id="onlineCount">0</span>
+        </div>
+        <div class="user-list" id="userList">
+            <div class="user-item public-item active-dm" data-target="__public__">
+                <span class="dot"></span>
+                <span class="name">Общий</span>
+                <span class="unread" id="unread-__public__"></span>
+            </div>
+        </div>
+        <div class="sidebar-footer" id="logoutBtn">
+            <span>↩</span> Выйти
+        </div>
+    </div>
+
+    <div class="chat-main">
+        <div class="chat-header">
+            <div class="chat-header-left" id="chatTitle">Общий чат</div>
+            <div class="chat-header-right" id="headerName"></div>
+        </div>
+        <div id="chatroom"></div>
+        <div class="chat-input-area">
+            <div class="pm-to-badge" id="pmBadge">
+                <span id="pmBadgeText"></span>
+                <span class="pm-cancel" id="pmCancelBtn">✕</span>
+            </div>
+            <input type="text" id="messageInput" maxlength="500" placeholder="Сообщение..." />
+            <button id="sendBtn" disabled>Отправить</button>
+        </div>
+        <div class="status-bar" id="connStatus">Подключение...</div>
+    </div>
+</div>
+
+<div class="ctx-menu" id="ctxMenu">
+    <div class="ctx-item" id="ctxCopy">Копировать</div>
+    <div class="ctx-item" id="ctxReply">Ответить</div>
+    <div class="ctx-item danger" id="ctxDelete">Удалить</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+<script>
+let currentUser   = "";
+let selectedMsg   = null;
+let hubConnection = null;
+let activeDM      = null;
+let unread        = {};
+const channels    = { "__public__": [] };
+
+const loginScreen    = document.getElementById("loginScreen");
+const registerScreen = document.getElementById("registerScreen");
+const chatScreen     = document.getElementById("chatScreen");
+const chatroom       = document.getElementById("chatroom");
+const messageInput   = document.getElementById("messageInput");
+const sendBtn        = document.getElementById("sendBtn");
+const connStatus     = document.getElementById("connStatus");
+const ctxMenu        = document.getElementById("ctxMenu");
+const userList       = document.getElementById("userList");
+const chatTitle      = document.getElementById("chatTitle");
+const pmBadge        = document.getElementById("pmBadge");
+const pmBadgeText    = document.getElementById("pmBadgeText");
+const pmCancelBtn    = document.getElementById("pmCancelBtn");
+const onlineCount    = document.getElementById("onlineCount");
+
+document.getElementById("goRegisterBtn").addEventListener("click", () => showScreen("register"));
+document.getElementById("goLoginBtn").addEventListener("click",    () => showScreen("login"));
+
+function showScreen(name) {
+    loginScreen.classList.toggle("active",    name === "login");
+    registerScreen.classList.toggle("active", name === "register");
+}
+
+document.getElementById("loginBtn").addEventListener("click", doLogin);
+document.getElementById("loginPass").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+
+async function doLogin() {
+    const userName = document.getElementById("loginUser").value.trim();
+    const password = document.getElementById("loginPass").value;
+    const errEl    = document.getElementById("loginErr");
+    errEl.textContent = "";
+
+    if (!userName || !password) { errEl.textContent = "Заполните все поля"; return; }
+
+    try {
+        const res  = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userName, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || "Ошибка входа"; return; }
+        enterChat(data.userName);
+    } catch {
+        errEl.textContent = "Сервер недоступен";
+    }
+}
+
+document.getElementById("registerBtn").addEventListener("click", doRegister);
+document.getElementById("regPass2").addEventListener("keydown", e => { if (e.key === "Enter") doRegister(); });
+
+async function doRegister() {
+    const userName = document.getElementById("regUser").value.trim();
+    const password = document.getElementById("regPass").value;
+    const pass2    = document.getElementById("regPass2").value;
+    const errEl    = document.getElementById("registerErr");
+    errEl.textContent = "";
+
+    if (!userName || !password)  { errEl.textContent = "Заполните все поля"; return; }
+    if (password !== pass2)      { errEl.textContent = "Пароли не совпадают"; return; }
+    if (password.length < 4)     { errEl.textContent = "Пароль минимум 4 символа"; return; }
+
+    try {
+        const res  = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userName, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || "Ошибка регистрации"; return; }
+        enterChat(data.userName);
+    } catch {
+        errEl.textContent = "Сервер недоступен";
+    }
+}
+
+function enterChat(userName) {
+    currentUser = userName;
+    document.getElementById("headerName").textContent = userName;
+    loginScreen.classList.remove("active");
+    registerScreen.classList.remove("active");
+    chatScreen.classList.add("active");
+    startHub();
+}
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+    if (hubConnection) hubConnection.stop();
+    chatScreen.classList.remove("active");
+    chatroom.innerHTML = "";
+    userList.querySelectorAll(".user-item:not(.public-item)").forEach(e => e.remove());
+    currentUser = "";
+    activeDM = null;
+    unread = {};
+    selectedMsg = null;
+    for (const k in channels) if (k !== "__public__") delete channels[k];
+    channels["__public__"] = [];
+    onlineCount.textContent = "0";
+    showScreen("login");
+});
+
+function startHub() {
+    hubConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/chat")
+        .withAutomaticReconnect()
+        .build();
+
+    hubConnection.onreconnecting(() => {
+        connStatus.textContent = "Переподключение...";
+        connStatus.className = "status-bar";
+        sendBtn.disabled = true;
+    });
+
+    hubConnection.onreconnected(() => {
+        connStatus.textContent = "Подключено";
+        connStatus.className = "status-bar ok";
+        sendBtn.disabled = false;
+        hubConnection.invoke("Register", currentUser);
+    });
+
+    hubConnection.onclose(() => {
+        connStatus.textContent = "Соединение разорвано";
+        connStatus.className = "status-bar err";
+        sendBtn.disabled = true;
+    });
+
+    
+
+    hubConnection.on("Notify", message => {
+        if (activeDM === null) addSysMsg(message);
+    });
+
+    hubConnection.on("Receive", (message) => {
+        storeMessage("__public__", message);
+        if (activeDM === null) renderMessage(message);
+        else bumpUnread("__public__");
+    });
+
+    hubConnection.on("ReceivePrivate", (message) => {
+        const partner = (message.userName === currentUser) ? message.toUser : message.userName;
+        storeMessage(partner, message);
+        if (activeDM === partner) renderMessage(message);
+        else bumpUnread(partner);
+    });
+
+    hubConnection.on("MessageDeleted", ({ id, channelKey }) => {
+        removeMessageFromStore(channelKey, id);
+        removeMessageFromDom(id);
+
+        const activeKey = activeDM || "__public__";
+        if (activeKey === channelKey) {
+            // уже удалили из DOM, тут ничего не нужно
+        }
+    });
+
+    hubConnection.on("UserJoined", userName => {
+        addUserToSidebar(userName, true);
+        updateOnlineCount();
+    });
+
+    hubConnection.on("UserLeft", userName => {
+        removeUserFromSidebar(userName);
+        updateOnlineCount();
+        if (activeDM === userName) addSysMsg(`${userName} покинул чат`);
+    });
+
+    hubConnection.start()
+        .then(() => {
+            sendBtn.disabled = false;
+            connStatus.textContent = "Подключено";
+            connStatus.className = "status-bar ok";
+            return hubConnection.invoke("Register", currentUser);
+        })
+        .then(() => hubConnection.invoke("GetOnlineUsers"))
+        .then(users => rebuildUserList(users))
+        .catch(err => {
+            connStatus.textContent = "Ошибка: " + err.message;
+            connStatus.className = "status-bar err";
+        });
+}
+
+sendBtn.addEventListener("click", sendMessage);
+messageInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text || !hubConnection) return;
+
+    if (activeDM) {
+        hubConnection.invoke("SendPrivate", text, currentUser, activeDM).catch(console.error);
+    } else {
+        hubConnection.invoke("Send", text, currentUser).catch(console.error);
+    }
+
+    messageInput.value = "";
+    messageInput.focus();
+}
+
+function rebuildUserList(users) {
+    userList.querySelectorAll(".user-item:not(.public-item)").forEach(e => e.remove());
+    users.filter(u => u !== currentUser).forEach(u => addUserToSidebar(u, false));
+    updateOnlineCount();
+}
+
+function addUserToSidebar(userName, animate) {
+    if (userList.querySelector(`[data-target="${CSS.escape(userName)}"]`)) return;
+
+    const item  = document.createElement("div");
+    item.className = "user-item" + (animate ? " new-user" : "");
+    item.dataset.target = userName;
+
+    const dot   = document.createElement("span");
+    dot.className  = "dot";
+
+    const name  = document.createElement("span");
+    name.className = "name";
+    name.textContent = userName;
+
+    const badge = document.createElement("span");
+    badge.className = "unread";
+    badge.id = `unread-${userName}`;
+
+    item.appendChild(dot);
+    item.appendChild(name);
+    item.appendChild(badge);
+    item.addEventListener("click", () => switchChannel(userName));
+    userList.appendChild(item);
+}
+
+function removeUserFromSidebar(userName) {
+    const el = userList.querySelector(`[data-target="${CSS.escape(userName)}"]`);
+    if (el) el.remove();
+    if (activeDM === userName) switchChannel(null);
+}
+
+function updateOnlineCount() {
+    onlineCount.textContent = userList.querySelectorAll(".user-item:not(.public-item)").length;
+}
+
+pmCancelBtn.addEventListener("click", () => switchChannel(null));
+document.querySelector('[data-target="__public__"]').addEventListener("click", () => switchChannel(null));
+
+function switchChannel(target) {
+    activeDM = target;
+
+    if (target) {
+        chatTitle.innerHTML = `<span class="dm-badge">ЛС</span> ${target}`;
+        pmBadge.classList.add("visible");
+        pmBadgeText.textContent = `→ ${target}`;
+        sendBtn.classList.add("pm-mode");
+    } else {
+        chatTitle.textContent = "Общий чат";
+        pmBadge.classList.remove("visible");
+        sendBtn.classList.remove("pm-mode");
+    }
+
+    const key = target || "__public__";
+    unread[key] = 0;
+    renderUnreadBadge(key);
+
+    chatroom.innerHTML = "";
+    const history = channels[key] || [];
+    [...history].reverse().forEach(renderMessage);
+
+    document.querySelectorAll(".user-item").forEach(el =>
+        el.classList.toggle("active-dm", el.dataset.target === (target || "__public__"))
+    );
+
+    messageInput.focus();
+}
+
+function storeMessage(channel, message) {
+    if (!channels[channel]) channels[channel] = [];
+    channels[channel].push(message);
+}
+
+function removeMessageFromStore(channel, id) {
+    if (!channels[channel]) return;
+    channels[channel] = channels[channel].filter(m => m.id !== id);
+}
+
+function bumpUnread(key) {
+    unread[key] = (unread[key] || 0) + 1;
+    renderUnreadBadge(key);
+}
+
+function renderUnreadBadge(key) {
+    const el = document.getElementById(`unread-${key}`);
+    if (!el) return;
+    const count = unread[key] || 0;
+    el.textContent = count || "";
+    el.style.display = count ? "inline" : "none";
+}
+
+function renderMessage(message) {
+    const isOwn = message.userName === currentUser;
+    const time  = message.createdAt
+        ? new Date(message.createdAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
+        : new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+
+    const wrap = document.createElement("div");
+    wrap.className = `msg ${isOwn ? "own" : "other"}${message.isPrivate ? " pm" : ""}`;
+    wrap.dataset.id = message.id;
+    wrap.dataset.text = message.text;
+    wrap.dataset.channel = message.channelKey;
+
+    const meta = document.createElement("div");
+    meta.className = "msg-meta";
+    meta.textContent = isOwn ? time : `${message.userName}  ${time}`;
+
+    const bubble = document.createElement("div");
+    bubble.className = "msg-bubble";
+    bubble.textContent = message.text;
+
+    wrap.appendChild(meta);
+    wrap.appendChild(bubble);
+
+    wrap.addEventListener("contextmenu", e => {
+        e.preventDefault();
+        selectedMsg = wrap;
+        ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 150) + "px";
+        ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight - 110) + "px";
+        ctxMenu.classList.add("open");
+        document.getElementById("ctxDelete").style.display = isOwn ? "block" : "none";
+    });
+
+    chatroom.prepend(wrap);
+}
+
+function removeMessageFromDom(id) {
+    const msg = document.querySelector(`.msg[data-id="${CSS.escape(id)}"]`);
+    if (msg) msg.remove();
+}
+
+function addSysMsg(text) {
+    const el = document.createElement("div");
+    el.className = "sys-msg";
+    el.textContent = text;
+    chatroom.prepend(el);
+}
+
+document.addEventListener("click", () => ctxMenu.classList.remove("open"));
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") ctxMenu.classList.remove("open");
+});
+
+document.getElementById("ctxCopy").addEventListener("click", () => {
+    if (selectedMsg) navigator.clipboard.writeText(selectedMsg.dataset.text);
+});
+
+document.getElementById("ctxReply").addEventListener("click", () => {
+    if (selectedMsg) {
+        messageInput.value = `> ${selectedMsg.dataset.text}\n`;
+        messageInput.focus();
+    }
+});
+
+document.getElementById("ctxDelete").addEventListener("click", async () => {
+    if (!selectedMsg || !hubConnection) return;
+
+    const id = selectedMsg.dataset.id;
+    const channelKey = selectedMsg.dataset.channel;
+
+    try {
+        await hubConnection.invoke("DeleteMessage", id, channelKey);
+    } catch (error) {
+        console.error(error);
+        connStatus.textContent = "Не удалось удалить сообщение";
+        connStatus.className = "status-bar err";
+    } finally {
+        selectedMsg = null;
+    }
+});
+</script>
+</body>
+</html>
