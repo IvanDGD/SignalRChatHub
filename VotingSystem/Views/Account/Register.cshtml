@@ -1,0 +1,41 @@
+@model RegisterViewModel
+
+<div class="auth-wrap">
+    <form asp-controller="Account" asp-action="Register" method="post" class="form">
+        <p class="form-title">Регистрация</p>
+        <p class="signup-link" style="margin-top:0">Создайте аккаунт для голосования</p>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+        <div class="inputGroup">
+            <input asp-for="Email" type="email" required autocomplete="off" placeholder=" " />
+            <label asp-for="Email">Email</label>
+        </div>
+        <span asp-validation-for="Email" class="text-danger small"></span>
+
+        <div class="inputGroup">
+            <input asp-for="Year" type="number" required autocomplete="off" placeholder=" " min="1900" max="2025" />
+            <label asp-for="Year">Год рождения</label>
+        </div>
+        <span asp-validation-for="Year" class="text-danger small"></span>
+
+        <div class="inputGroup">
+            <input asp-for="Password" type="password" required autocomplete="off" placeholder=" " />
+            <label asp-for="Password">Пароль</label>
+        </div>
+        <span asp-validation-for="Password" class="text-danger small"></span>
+
+        <div class="inputGroup">
+            <input asp-for="PasswordConfirm" type="password" required autocomplete="off" placeholder=" " />
+            <label asp-for="PasswordConfirm">Подтвердить пароль</label>
+        </div>
+        <span asp-validation-for="PasswordConfirm" class="text-danger small"></span>
+
+        <button type="submit" class="submit">Зарегистрироваться</button>
+
+        <p class="signin">
+            Уже есть аккаунт?
+            <a href="/Account/Login">Войти</a>
+        </p>
+    </form>
+</div>

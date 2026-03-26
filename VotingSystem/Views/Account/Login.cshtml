@@ -1,0 +1,35 @@
+@model LoginViewModel
+
+<div class="auth-wrap">
+    <form method="post" asp-controller="Account" asp-action="Login" class="form">
+        <p class="form-title">Вход в аккаунт</p>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+        <div class="inputGroup">
+            <input asp-for="Email" type="email" required autocomplete="off" placeholder=" " />
+            <label asp-for="Email">Email</label>
+        </div>
+        <span asp-validation-for="Email" class="text-danger small"></span>
+
+        <div class="inputGroup">
+            <input asp-for="Password" type="password" required autocomplete="off" placeholder=" " />
+            <label asp-for="Password">Пароль</label>
+        </div>
+        <span asp-validation-for="Password" class="text-danger small"></span>
+
+        <div class="checkbox-row">
+            <label class="custom-checkbox">
+                <input asp-for="RememberMe" type="checkbox" />
+            </label>
+            <label asp-for="RememberMe" class="remember-label">Запомнить меня</label>
+        </div>
+
+        <button type="submit" class="submit">Войти</button>
+
+        <p class="signup-link">
+            Нет аккаунта?
+            <a href="/Account/Register">Зарегистрироваться</a>
+        </p>
+    </form>
+</div>

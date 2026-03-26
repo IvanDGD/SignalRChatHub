@@ -1,0 +1,165 @@
+@model VotingSystem.Models.Poll
+@{
+    ViewData["Title"] = Model.Name;
+    bool hasVoted = ViewBag.HasVoted ?? false;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center mb-3 gap-2">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Назад</a>
+            <h3 class="mb-0">@Model.Name</h3>
+            @if (Model.IsActive)
+            {
+                <span class="badge bg-success">Активно</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">Закрыто</span>
+            }
+        </div>
+
+        @* Voting form *@
+        @if (Model.IsActive && User.Identity!.IsAuthenticated && !hasVoted)
+        {
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header fw-semibold">Ваш голос</div>
+                <div class="card-body">
+                    <form asp-action="Vote" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="pollId" value="@Model.Id" />
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            @foreach (var opt in Model.Options)
+                            {
+                                <div class="form-check vote-option p-3 border rounded">
+                                    <input class="form-check-input" type="radio"
+                                           name="optionId" value="@opt.Id" id="opt_@opt.Id" required />
+                                    <label class="form-check-label fw-medium w-100" for="opt_@opt.Id">
+                                        @opt.Text
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <button type="submit" class="btn btn-primary">Проголосовать</button>
+                    </form>
+                </div>
+            </div>
+        }
+        else if (!User.Identity!.IsAuthenticated)
+        {
+            <div class="alert alert-info">
+                <a asp-controller="Account" asp-action="Login">Войдите</a>, чтобы проголосовать.
+            </div>
+        }
+        else if (hasVoted)
+        {
+            <div class="alert alert-success">✅ Вы уже проголосовали в этом опросе.</div>
+        }
+        else if (!Model.IsActive)
+        {
+            <div class="alert alert-secondary">Голосование закрыто.</div>
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">📈 Результаты в реальном времени</span>
+                <span class="badge bg-primary" id="totalVotes">...</span>
+            </div>
+            <div class="card-body">
+                <div id="results-container">
+                    <div class="text-center text-muted py-3">Загрузка...</div>
+                </div>
+                <canvas id="pollChart" height="80" class="mt-3"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        const pollId = @Model.Id;
+        let chartInstance = null;
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/pollHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveResults", function (results) {
+            renderResults(results);
+        });
+
+        connection.start()
+            .then(() => connection.invoke("JoinPoll", pollId))
+            .catch(err => console.error("SignalR error:", err));
+
+        window.addEventListener("beforeunload", () => {
+            connection.invoke("LeavePoll", pollId).catch(() => {});
+        });
+
+        function renderResults(results) {
+            const total = results.reduce((s, r) => s + r.votes, 0);
+            document.getElementById("totalVotes").textContent = total + " голос(ов)";
+
+            const container = document.getElementById("results-container");
+            container.innerHTML = results.map(r => `
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-medium">${escHtml(r.optionText)}</span>
+                        <span class="text-muted">${r.votes} (${r.percentage}%)</span>
+                    </div>
+                    <div class="progress" style="height:22px">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar"
+                             style="width:${r.percentage}%"
+                             aria-valuenow="${r.percentage}" aria-valuemin="0" aria-valuemax="100">
+                            ${r.percentage > 5 ? r.percentage + '%' : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            renderChart(results);
+        }
+
+        function renderChart(results) {
+            const labels = results.map(r => r.optionText);
+            const data   = results.map(r => r.votes);
+            const colors = [
+                '#4e79a7','#f28e2b','#e15759','#76b7b2',
+                '#59a14f','#edc948','#b07aa1','#ff9da7'
+            ];
+
+            if (chartInstance) {
+                chartInstance.data.labels = labels;
+                chartInstance.data.datasets[0].data = data;
+                chartInstance.update();
+            } else {
+                const ctx = document.getElementById("pollChart").getContext("2d");
+                chartInstance = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: "Голоса",
+                            data: data,
+                            backgroundColor: colors.slice(0, data.length),
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+            }
+        }
+
+        function escHtml(str) {
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+    </script>
+}

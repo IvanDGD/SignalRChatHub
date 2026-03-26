@@ -1,0 +1,116 @@
+/* ===== Base ===== */
+body {
+    background-color: #f5f7fa;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* ===== Vote option hover ===== */
+.vote-option {
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+.vote-option:hover {
+    background: #eef4ff;
+    border-color: #4e79a7 !important;
+}
+.vote-option:has(input:checked) {
+    background: #ddeeff;
+    border-color: #0d6efd !important;
+}
+
+/* ===== Auth forms ===== */
+.auth-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 75vh;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #fff;
+    padding: 2rem;
+    width: 380px;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.10);
+}
+
+.form-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: .5rem;
+}
+
+.inputGroup {
+    position: relative;
+}
+
+.inputGroup input {
+    width: 100%;
+    padding: .65rem .75rem;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color .2s;
+}
+
+.inputGroup input:focus {
+    outline: none;
+    border-color: #0d6efd;
+}
+
+.inputGroup label {
+    position: absolute;
+    top: 50%;
+    left: .75rem;
+    transform: translateY(-50%);
+    font-size: .9rem;
+    color: #6c757d;
+    pointer-events: none;
+    transition: all .2s;
+    background: #fff;
+    padding: 0 4px;
+}
+
+.inputGroup input:focus ~ label,
+.inputGroup input:not(:placeholder-shown) ~ label {
+    top: 0;
+    font-size: .75rem;
+    color: #0d6efd;
+}
+
+.submit {
+    border: none;
+    padding: .65rem;
+    background: #0d6efd;
+    color: #fff;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .2s;
+    margin-top: .5rem;
+}
+
+.submit:hover { background: #0b5ed7; }
+
+.signup-link, .signin {
+    text-align: center;
+    font-size: .9rem;
+    color: #6c757d;
+}
+
+.signup-link a, .signin a { color: #0d6efd; text-decoration: none; }
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.remember-label { font-size: .9rem; color: #6c757d; cursor: pointer; }
+
+/* ===== Progress bar ===== */
+.progress { background: #e9ecef; }

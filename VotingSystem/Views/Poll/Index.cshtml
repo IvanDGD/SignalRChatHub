@@ -1,0 +1,68 @@
+@model List<Poll>
+@{
+    ViewData["Title"] = "Голосования";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">📊 Голосования</h2>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create" class="btn btn-primary">+ Создать голосование</a>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center text-muted py-5">
+        <h4>Голосований пока нет</h4>
+        <p>Администратор ещё не создал ни одного голосования.</p>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var poll in Model)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm @(poll.IsActive ? "" : "opacity-50")">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">@poll.Name</h5>
+                            @if (poll.IsActive)
+                            {
+                                <span class="badge bg-success">Активно</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Закрыто</span>
+                            }
+                        </div>
+                        <p class="text-muted small">
+                            Вариантов: @poll.Options?.Count | Голосов: @poll.Votes.Count
+                        </p>
+                        <p class="text-muted small">Создано: @poll.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+                    </div>
+                    <div class="card-footer bg-transparent d-flex gap-2 flex-wrap">
+                        <a asp-action="Details" asp-route-id="@poll.Id" class="btn btn-sm btn-outline-primary">Открыть</a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <form asp-action="Toggle" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@poll.Id" />
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm @(poll.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                    @(poll.IsActive ? "Закрыть" : "Открыть")
+                                </button>
+                            </form>
+                            <form asp-action="Delete" method="post" class="d-inline"
+                                  onsubmit="return confirm('Удалить голосование?')">
+                                <input type="hidden" name="id" value="@poll.Id" />
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

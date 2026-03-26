@@ -1,0 +1,205 @@
+﻿@model List<VotingSystem.Models.Poll>
+
+@{
+    ViewData["Title"] = "Admin Panel";
+}
+
+<div class="container">
+    <div class="header">
+        <h1>📊 Панель Адміністратора</h1>
+        <p>Управління опитуваннями</p>
+    </div>
+
+    <button class="button" type="button" id="addPollBtn">
+        <span class="button__text">Add Poll</span>
+        <span class="button__icon">
+            <svg class="svg" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <line x1="12" x2="12" y1="5" y2="19"></line>
+                <line x1="5" x2="19" y1="12" y2="12"></line>
+            </svg>
+        </span>
+    </button>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="form-modal">
+            <h2>Створити новий опрос</h2>
+            <form id="pollForm" asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                
+                <div class="form-group">
+                    <label for="pollName">Назва опросу *</label>
+                    <input type="text" id="pollName" name="Name" required placeholder="Введіть назву опросу">
+                </div>
+
+                <div id="questionsContainer">
+                </div>
+
+                <button type="button" class="add-btn" id="addQuestionBtn">
+                    ➕ Додати питання
+                </button>
+
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" id="cancelBtn">Скасувати</button>
+                    <button type="submit" class="submit-btn">Створити опрос</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="polls-grid">
+        @if (Model != null && Model.Any())
+        {
+            foreach (var poll in Model)
+            {
+                <div class="poll-card">
+                    <h3>@poll.Name</h3>
+                    <div class="poll-info">
+                        <div class="poll-info-item">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Питань: @(poll.Options?.Count ?? 0)</span>
+                        </div>
+                        <div class="poll-info-item">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>@poll.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                        </div>
+                    </div>
+                    <form asp-action="Delete" method="post" onsubmit="return confirm('Ви впевнені, що хочете видалити цей опрос?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@poll.Id" />
+                        <button type="submit" class="delete-poll-btn">🗑️ Видалити</button>
+                    </form>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3>Опросів ще немає</h3>
+                <p>Натисніть "Add Poll", щоб створити перший опрос</p>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    let questionCounter = 0;
+
+    const modalOverlay = document.getElementById('modalOverlay');
+    const addPollBtn = document.getElementById('addPollBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    addPollBtn.addEventListener('click', () => {
+        modalOverlay.classList.add('show');
+        if (questionCounter === 0) {
+            addQuestion();
+        }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        modalOverlay.classList.remove('show');
+        setTimeout(() => {
+            document.getElementById('pollForm').reset();
+            document.getElementById('questionsContainer').innerHTML = '';
+            questionCounter = 0;
+        }, 300);
+    });
+
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            cancelBtn.click();
+        }
+    });
+
+    document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
+
+    function addQuestion() {
+        questionCounter++;
+        const questionsContainer = document.getElementById('questionsContainer');
+        
+        const questionBlock = document.createElement('div');
+        questionBlock.className = 'question-block';
+        questionBlock.dataset.questionId = questionCounter;
+        
+        questionBlock.innerHTML = `
+            <div class="question-header">
+                <h4>Питання ${questionCounter}</h4>
+                ${questionCounter > 1 ? '<button type="button" class="remove-btn" onclick="removeQuestion(this)">Видалити</button>' : ''}
+            </div>
+            <div class="form-group">
+                <label>Текст питання *</label>
+                <input type="text" name="Options[${questionCounter - 1}].Text" required placeholder="Введіть питання">
+            </div>
+            <div class="options-container">
+                <div class="option-item">
+                    <input type="text" name="Options[${questionCounter - 1}].Answers[0]" required placeholder="Варіант відповіді 1">
+                    <button type="button" class="remove-btn" onclick="removeOption(this)" style="display:none;">✕</button>
+                </div>
+                <div class="option-item">
+                    <input type="text" name="Options[${questionCounter - 1}].Answers[1]" required placeholder="Варіант відповіді 2">
+                    <button type="button" class="remove-btn" onclick="removeOption(this)">✕</button>
+                </div>
+            </div>
+            <button type="button" class="add-btn" onclick="addOption(this, ${questionCounter})">➕ Додати відповідь</button>
+        `;
+        
+        questionsContainer.appendChild(questionBlock);
+    }
+
+    function removeQuestion(btn) {
+        const questionBlock = btn.closest('.question-block');
+        questionBlock.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => {
+            questionBlock.remove();
+            updateQuestionNumbers();
+        }, 300);
+    }
+
+    function updateQuestionNumbers() {
+        const questions = document.querySelectorAll('.question-block');
+        questions.forEach((question, index) => {
+            question.querySelector('h4').textContent = `Питання ${index + 1}`;
+        });
+    }
+
+    function addOption(btn, questionId) {
+        const optionsContainer = btn.previousElementSibling;
+        const optionCount = optionsContainer.children.length;
+        
+        const optionItem = document.createElement('div');
+        optionItem.className = 'option-item';
+        optionItem.innerHTML = `
+            <input type="text" name="Options[${questionId - 1}].Answers[${optionCount}]" required placeholder="Варіант відповіді ${optionCount + 1}">
+            <button type="button" class="remove-btn" onclick="removeOption(this)">✕</button>
+        `;
+        
+        optionsContainer.appendChild(optionItem);
+        
+        if (optionCount >= 2) {
+            optionsContainer.querySelector('.option-item .remove-btn').style.display = 'block';
+        }
+    }
+
+    function removeOption(btn) {
+        const optionsContainer = btn.closest('.options-container');
+        const optionCount = optionsContainer.children.length;
+        
+        if (optionCount > 2) {
+            const optionItem = btn.closest('.option-item');
+            optionItem.style.animation = 'slideIn 0.3s ease reverse';
+            setTimeout(() => {
+                optionItem.remove();
+                
+                if (optionsContainer.children.length === 2) {
+                    optionsContainer.querySelector('.option-item .remove-btn').style.display = 'none';
+                }
+            }, 300);
+        }
+    }
+</script>

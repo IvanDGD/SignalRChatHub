@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="VotingSystem/VotingSystem.csproj" Id="4cc88819-4526-4565-884a-25068437c745" />
   <Project Path="WebApplication5/WebApplication5.csproj" />
 </Solution>
