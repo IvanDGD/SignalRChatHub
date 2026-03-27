@@ -7,6 +7,7 @@ using VotingSystem.Models;
 
 namespace VotingSystem.Controllers
 {
+    [Authorize("Admin")]
     public class AdminController : Controller
     {
         private readonly ApplicationContext _context;
